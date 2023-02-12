@@ -33,6 +33,7 @@ class Server:
         allData = b''
         message = b''
         messages = []
+        i = 0
         while True:
             data = conn.recv(4096)
             if not data:
@@ -71,17 +72,20 @@ class Server:
                         maskingKey <<= 8
                         mask += intData.pop(0)
                 print(f"({id}) Got frame (mask: {maskingKey}, len: {length}):", bytes(intData[:length]))"""
-            if not data.decode('ascii').startswith("GET /hahaha"):
-                conn.close()
-                return
+            if i == 0:  # Don't exit on second request
+                if not data.decode('ascii').startswith("GET /hahaha"):
+                    conn.close()
+                    return
             sha1 = hashlib.sha1()
-            sha1.update(base64.b64decode(input("Tell us the base64: ")))
-            sha1.update(bytes("258EAFA5-E914-47DA-95CA-C5AB0DC85B11", 'ascii'))
+            sha1.update(bytes(input("Tell us the base64: ").strip() + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11",
+                              'ascii'))  # Don't decode from base64!
+            # sha1.update(bytes("258EAFA5-E914-47DA-95CA-C5AB0DC85B11", 'ascii'))
             print("Hashed:", sha1.digest(), f"===> {base64.b64encode(sha1.digest()).decode('ascii')}")
             conn.send(bytes(
                 f"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: {base64.b64encode(sha1.digest()).decode('ascii')}\r\nSec-WebSocket-Protocol: chat\r\n\r\n",
                 'utf-8'))
             print("Sent response!")
+            i += 1
         print(f"({id}) Connection closed. Received:", allData)
         with open(f"captures/{id}.bin", "wb+") as f:
             f.write(allData)
