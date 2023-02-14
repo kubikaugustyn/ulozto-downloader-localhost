@@ -4,7 +4,7 @@ const message = document.getElementById("message")
 const send = document.getElementById("send")
 const messages = document.getElementById("messages")
 
-const api = new WebSocket("/api")
+const api = new WebSocket(`ws://${document.location.host}/api`)
 
 send.addEventListener("click", () => {
     if (message.value) {
