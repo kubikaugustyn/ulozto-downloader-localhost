@@ -1,0 +1,125 @@
+fieldset {
+    width: fit-content;
+}
+
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+}
+
+body * {
+    z-index: 0;
+}
+
+#loadingOverlay {
+    position: absolute;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    background-color: rgba(0, 0, 0, 50%);
+}
+
+#loading {
+    position: absolute;
+    z-index: 2;
+    width: fit-content;
+    height: fit-content;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#loadingMessage {
+    z-index: 3;
+    color: black;
+    background-color: white;
+    border-radius: 10px;
+    border: 1px solid white;
+    width: fit-content;
+    height: fit-content;
+    padding: 5px;
+
+    transform: translateX(-50%);
+    left: 50%;
+    position: relative;
+}
+
+.loading {
+    z-index: 3;
+    margin-bottom: 5px;
+    transform: translateX(-50%);
+    left: 50%;
+
+    width: 120px;
+    height: 120px;
+    position: relative;
+    background-color: transparent;
+}
+
+.loading .loading-cut1, .loading .loading-cut, .loading .loading-line {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    top: 0;
+    left: 0;
+}
+
+.loading .loading-line {
+    position: absolute;
+    border: 10px solid white;
+    z-index: 1;
+}
+
+.loading .loading-cut1, .loading-cut {
+    position: absolute;
+}
+
+.loading .loading-cut {
+    z-index: 2;
+    border: 10px solid black;
+    border-right-color: transparent;
+    border-bottom-color: transparent;
+    animation: rotate 1s infinite;
+}
+
+.loading .loading-cut1 {
+    z-index: 3;
+    border: 10px solid black;
+    border-right-color: transparent;
+    border-bottom-color: transparent;
+    animation: rotate1 1s infinite;
+}
+
+@keyframes rotate1 {
+    0% {
+        transform: rotate(-45deg);
+        /*display: none;*/
+        /*visibility: hidden;*/
+    }
+    25% {
+        transform: rotate(45deg);
+    }
+    50% {
+        transform: rotate(90deg);
+    }
+    75% {
+        transform: rotate(135deg);
+    }
+    100% {
+        transform: rotate(315deg);
+        /*display: block;*/
+        /*visibility: visible;*/
+    }
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(-45deg);
+    }
+    to {
+        transform: rotate(315deg);
+    }
+}

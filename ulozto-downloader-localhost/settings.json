@@ -1,0 +1,20 @@
+{
+  "urls": [
+    "https://uloz.to/file/bETXND2RARAe/fizistyle-desivi-klauni-opet-utoci-sokujici-zabery-mp4"
+  ],
+  "main": {
+    "parts": 20,
+    "output": "./",
+    "temp": "./",
+    "overwrite": false
+  },
+  "log": {
+    "partsProgress": false,
+    "log": ""
+  },
+  "captcha": {
+    "autoCaptcha": false,
+    "manualCaptcha": false,
+    "connTimeout": "const DEFAULT_CONN_TIMEOUT"
+  }
+}

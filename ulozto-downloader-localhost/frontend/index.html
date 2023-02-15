@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="cs">
 <head>
     <meta charset="UTF-8">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -8,11 +8,45 @@
     <link rel="stylesheet" type="text/css" href="index.css">
 </head>
 <body>
-<label>
-    Enter message:
-    <input id="message" type="text" value="Hello">
-</label>
-<button id="send">Send!</button>
-<div id="messages"></div>
+<div id="loadingOverlay">
+    <div id="loading">
+        <div class="loading">
+            <div class="loading-cut"></div>
+            <div class="loading-cut1"></div>
+            <div class="loading-line"></div>
+        </div>
+        <div id="loadingMessage">Loading...</div>
+    </div>
+</div>
+<form id="settingsForm">
+    <fieldset id="urls">
+        <legend>Zadejte jednu nebo více URL videa</legend>
+        <button id="urlAdd">+</button>
+    </fieldset>
+    <fieldset id="main">
+        <legend>Hlavní nastavení</legend>
+        <label>Části: <input type="number" placeholder="Části" step="1" min="1" id="parts"
+                             title="Kolik částí bude stahováno naráz"></label><br>
+        <label>Výstup: <input type="text" placeholder="Výstupní složka" id="output"
+                              title="Výstupní složka, do které se uloží stažené soubory"></label><br>
+        <label>Dočasný výstup: <input type="text" placeholder="Dočasný výstup" id="temp"
+                                      title="Dočasná výstupní složka, do které se uloží stahované soubory při stahování"></label><br>
+        <label>Přepsat: <input type="checkbox" id="overwrite" title="Přepsat soubory bez potvrzení"></label>
+    </fieldset>
+    <fieldset id="log">
+        <legend>Nastavení Logu</legend>
+        <label>Části: <input type="checkbox" id="partsProgress" title="Zobrazit postup částí když jsou stahovány"></label><br>
+        <label>Log soubor: <input type="text" placeholder="Log soubor" id="logFile"
+                              title="Výstupní log soubor, do kterého se uloží log"></label>
+    </fieldset>
+    <fieldset id="captcha">
+        <legend>Nastavení Captchy</legend>
+        <label>Automatická Captcha: <input type="checkbox" id="autoCaptcha" title="Jestli je povolena automatická Captcha"></label><br>
+        <label>Manuální Captcha: <input type="checkbox" id="manualCaptcha" title="Jestli je povolena manuální Captcha"></label><br>
+        <label>Časový limit připojení: <input type="number" min="1" placeholder="Časový limit připojení" id="connTimeout"
+                              title="Časový limit připojení pro TOR v sekundách"> sekund</label>
+    </fieldset>
+    <input type="submit" value="Uložit">
+</form>
 </body>
 </html>
