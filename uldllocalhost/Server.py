@@ -10,6 +10,9 @@ import uuid
 from threading import Thread
 from HTTPRequest import *
 from HTTPResponse import *
+from Settings import *
+from Downloader import *
+from typing import List
 
 
 class WebSocketFrame:
@@ -74,27 +77,33 @@ class WebSocketFrame:
 
 
 class ServerConnection:
-    def __init__(self, conn, addr, id, server):
+    def __init__(self, conn: socket.socket, addr: str, id: uuid.UUID, server):
         self.conn = conn
         self.addr = addr
         self.id = id
         self.server = server
 
+        self.__apiHandler = False
         self.__alive = True
         self.__responseThread = Thread(target=self.__responseProcessor)  # Receive data from client, always runs
         self.__requestThread = Thread(
             target=self.__requestProcessor)  # Send data to client, start only if we have request
         self.__requests = []
 
+        self.__downloader = None  # Used only in some connections!
+        self.__downloaderRunThread = None  # Used only in some connections!
+
         self.__responseThread.start()
 
     # byte & numb is 1
     # 0110 & 100 is 1
     # 0110 & 1000 is 0
-    def __bit(self, byte, numb):
+    @staticmethod
+    def __bit(byte: int, numb: int):
         return int((byte & numb) == numb)
 
-    def __serveFile(self, fileName):
+    @staticmethod
+    def __serveFile(fileName: str):
         # print(f"Serving file: {fileName}")
         response = HTTPResponse()
         response.setStatusCode(200).setReasonPhrase("OK")
@@ -102,11 +111,27 @@ class ServerConnection:
             response.setBody(f.read())
         return response
 
-    def __sendWebSocketJSON(self, obj):
+    def __sendWebSocketJSON(self, obj: dict):
         webSocket = WebSocketFrame(fin=True, opcode=0x1, payloadData=bytes("json" + json.dumps(obj), 'utf-8'))
         self.__addWebSocketRequest([webSocket])
 
-    def __handleAPIMessage(self, id, messageFrames, connection):
+    @staticmethod
+    def __readSettings():
+        raw = json.load(open("settings.json", "r+"))
+        settings = Settings()
+        settings.urls = raw['urls']
+        settings.parts = raw['main']['parts']
+        settings.output = raw['main']['output']
+        settings.temp = raw['main']['temp']
+        settings.yes = raw['main']['overwrite']
+        settings.parts_progress = raw['log']['partsProgress']
+        settings.log = raw['log']['log']
+        settings.auto_captcha = raw['captcha']['autoCaptcha']
+        settings.manual_captcha = raw['captcha']['manualCaptcha']
+        settings.conn_timeout = raw['captcha']['connTimeout']
+        return settings
+
+    def __handleAPIMessage(self, id: uuid.UUID, messageFrames: List[WebSocketFrame], connection: socket.socket):
         # print(f"({id}) Received message: {list(map(lambda frame: str(frame), messageFrames))}")
         opcode = None
         payloads = []
@@ -119,7 +144,7 @@ class ServerConnection:
                 if frame.opcode != 0x0:
                     raise RuntimeError(f"Received wrong continuation frame opcode {frame.opcode}.")
             payloads.append(frame.payloadData)
-        payload = bytes([]).join(payloads)
+        payload: str | bytes | dict = bytes([]).join(payloads)
         if opcode == 0x1:  # Denotes a text frame
             payload = payload.decode('utf-8')
             if payload.startswith("json"):
@@ -134,14 +159,41 @@ class ServerConnection:
                     if payload['type'] == "request":
                         if payload['request'] == "settings":
                             self.__sendWebSocketJSON({'type': "response",
-                                                      'request': payload,
+                                                      'source': payload,
                                                       'settings': json.load(open("settings.json", "r+"))})
                         elif payload['request'] == "constants":
                             isBad = lambda k: k.startswith('__')
                             consts = {k: v for k, v in vars(constants).items() if not isBad(k)}
                             self.__sendWebSocketJSON({'type': "response",
-                                                      'request': payload,
+                                                      'source': payload,
                                                       'constants': consts})
+                    elif payload['type'] == "save":
+                        if payload['save'] == "settings":
+                            json.dump(payload['settings'], open("settings.json", "w+"))
+                            self.__sendWebSocketJSON({'type': "saved",
+                                                      'source': payload,
+                                                      'settings': payload['settings']})
+                    elif payload['type'] == "download":
+                        if payload['download'] == "start":
+                            # Start downloading
+                            settings = self.__readSettings()
+                            self.__downloaderRunThread = Thread(target=self.__downloader.run,
+                                                                args=(settings,))
+                            self.__downloaderRunThread.start()
+                            self.__sendWebSocketJSON({'type': "download",
+                                                      'source': payload,
+                                                      'download': self.__downloader.getState()})
+                        elif payload['download'] == "state":
+                            self.__sendWebSocketJSON({'type': "state",
+                                                      'source': payload,
+                                                      'state': self.__downloader.getState()})
+                        elif payload['download'] == "stop":
+                            if self.__downloader.exitHandler:
+                                self.__downloader.exitHandler()
+                        else:
+                            print("Undefined payload JSON:", payload)
+                    else:
+                        print("Undefined payload JSON:", payload)
                 except KeyError:
                     print("KeyError")
         elif opcode == 0x2:  # Denotes a binary frame
@@ -155,7 +207,7 @@ class ServerConnection:
         else:
             raise RuntimeError("Wtf?!")
 
-    def __addRequest(self, type, data):
+    def __addRequest(self, type: str, data: str | dict):
         request = {
             'type': type,
             'response': None,
@@ -164,10 +216,10 @@ class ServerConnection:
         for key in data:
             request[key] = data[key]
         self.__requests.append(request)
-        if not self.__requestThread.is_alive():
+        if self.__alive and not self.__requestThread.is_alive():
             self.__requestThread.start()
 
-    def __addWebSocketRequest(self, webSockets):
+    def __addWebSocketRequest(self, webSockets: List[WebSocketFrame]):
         self.__addRequest("websocket", {'webSockets': webSockets})
 
     def __responseProcessor(self):
@@ -197,6 +249,8 @@ class ServerConnection:
                     else:
                         path = requestURI
                     if path == "/api":
+                        self.__apiHandler = True
+                        self.__downloader = Downloader(self)
                         sha1 = hashlib.sha1()
                         hashedText = request.getHeader(bytes("Sec-WebSocket-Key", 'ascii')).decode(
                             'ascii') + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
@@ -299,14 +353,37 @@ class ServerConnection:
                     print(request)
                     if request['type'] == "websocket":
                         message = bytes([]).join(list(map(lambda sock: sock.create(), request['webSockets'])))
-                        self.conn.send(message)
-                        request['closed'] = True
+                        try:
+                            self.conn.send(message)
+                            request['closed'] = True
+                        except OSError:
+                            pass
                 else:
                     self.__requests.remove(request)
+
+    def onFrontendMessage(self, message: dict):
+        self.__sendWebSocketJSON({
+            'type': "frontendMessage",
+            'frontendMessage': message
+        })
+
+    def onDownloaderTerminate(self):
+        if self.isApiHandler():
+            self.__sendWebSocketJSON({
+                'type': "download",
+                'download': "stop"
+            })
+        self.exit()
 
     def exit(self):
         self.conn.close()
         self.__alive = False
+
+    def isAlive(self):
+        return self.__alive
+
+    def isApiHandler(self):
+        return self.__apiHandler
 
 
 class Server:
@@ -323,6 +400,7 @@ class Server:
 
     def __connectionProcessor(self):
         while True:
+            self.__connections = list(filter(lambda connection: connection.isAlive(), self.__connections))
             conn, addr = self.__socket.accept()
             # print(f"{addr[0]}:{addr[1]} has connected.")
             t = Thread(target=self.__handleConnection, args=(conn, addr))

@@ -1,7 +1,29 @@
 const __author__ = "kubik.augustyn@post.cz"
 
+// **************
+// Do the foldable elements
+const foldables = new Map(new Array(document.querySelector(".foldable")).map(elem => [elem, false]))
+new Array(document.querySelector(".foldButton")).forEach(button => {
+    button.addEventListener("click", ev => {
+        const button = ev.target
+        if (!button.parentElement) return;
+        let parent = button.parentElement
+        if (!foldables.has(parent)) {
+            if (!parent.parentElement) return;
+            if (!foldables.has(parent.parentElement)) return
+            parent = parent.parentElement
+        }
+        foldables.set(parent, !foldables.get(parent))
+        const folded = foldables.get(parent)
+        if (folded) parent.classList.remove("folded")
+        else parent.classList.add("folded")
+    })
+})
+// **************
+
 const ge = (id) => document.getElementById(id)
 let settings = undefined
+let downloadState = undefined
 let constants = {}
 const getConst = (text) => {
     if (typeof text !== "string") return text
@@ -31,6 +53,10 @@ const settingsElements = new class {
         this.autoCaptcha = ge("autoCaptcha")
         this.manualCaptcha = ge("manualCaptcha")
         this.connTimeout = ge("connTimeout")
+
+        this.downloadStart = ge("downloadStart")
+        this.downloadStop = ge("downloadStop")
+        this.logging = ge("logging")
 
         Object.getOwnPropertyNames(Object.getPrototypeOf(this)).filter(method => (method !== 'constructor')).forEach((method) => {
             this[method] = this[method].bind(this);
@@ -76,7 +102,9 @@ api.onmessage = (ev) => {
     let data = ev.data
     if (data.search("json") === 0) {
         data = JSON.parse(data.slice(4))
-        if (data?.request?.id) messageHandlers.get(data.request.id)?.(data)
+        if (data.type === "frontendMessage") onFrontendMessage(data.frontendMessage)
+        else if (data.type === "download" && data.download === "stop") onDownloadStop()
+        if (data?.source?.id) messageHandlers.get(data.source.id)?.(data)
     }
     // console.log(data)
     onMessage(false, data)
@@ -107,6 +135,47 @@ const onMessage = (fromUser, text) => {
     console.log(prefix, text)
 }
 
+const onFrontendMessage = (message) => {
+    console.log("Frontend message:", message)
+    if (message.type === "print") settingsElements.logging.innerHTML += message.print + "<br>"
+}
+
+const downloadChange = data => {
+    console.log("Download changed:", data)
+    sendMessage({
+        "type": "download",
+        "download": "state"
+    }, downloadStateChange)
+}
+const downloadStateChange = data => {
+    downloadState = data.state
+    console.log("Download state changed:", downloadState)
+    switch (downloadState) {
+        case "waiting":
+            settingsElements.downloadStop.disabled = true
+            settingsElements.downloadStart.disabled = false
+            break
+        case "running":
+            settingsElements.downloadStop.disabled = false
+            settingsElements.downloadStart.disabled = true
+            break
+        case "stopped":
+            settingsElements.downloadStop.disabled = true
+            settingsElements.downloadStart.disabled = true
+            break
+        case "done":
+            settingsElements.downloadStop.disabled = true
+            settingsElements.downloadStart.disabled = true
+            break
+        default:
+            console.log("Not implemented state:", downloadState)
+            break
+    }
+}
+const onDownloadStop = () => {
+    console.log("Download stopped!")
+}
+
 settingsElements.urlElemAdd.onclick = ev => {
     ev.preventDefault()
     settingsElements.addUrlElem()
@@ -116,7 +185,7 @@ settingsElements.settingsForm.onsubmit = ev => {
 
     settings.urls = settingsElements.readUrls()
 
-    settings.main.parts = settingsElements.parts.value
+    settings.main.parts = parseInt(settingsElements.parts.value)
     settings.main.output = settingsElements.output.value
     settings.main.temp = settingsElements.temp.value
     settings.main.overwrite = settingsElements.overwrite.checked
@@ -126,15 +195,33 @@ settingsElements.settingsForm.onsubmit = ev => {
 
     settings.captcha.autoCaptcha = settingsElements.autoCaptcha.checked
     settings.captcha.manualCaptcha = settingsElements.manualCaptcha.checked
-    settings.captcha.connTimeout = settingsElements.connTimeout.value
+    settings.captcha.connTimeout = parseInt(settingsElements.connTimeout.value)
 
+    settingsElements.loading("Saving settings...")
     sendMessage({"type": "save", "save": "settings", "settings": settings}, response => {
-        console.log("Saved settings:", response)
+        // console.log("Saved settings:", response)
+        settingsElements.stopLoading()
     })
+}
+settingsElements.downloadStart.onclick = () => {
+    sendMessage({
+        "type": "download",
+        "download": "start"
+    }, downloadChange)
+}
+settingsElements.downloadStop.onclick = () => {
+    sendMessage({
+        "type": "download",
+        "download": "stop"
+    }, downloadChange)
 }
 
 const onInit = () => {
     settingsElements.loading("Loading constants...")
+    sendMessage({
+        "type": "download",
+        "download": "state"
+    }, downloadStateChange)
     sendMessage({"type": "request", "request": "constants"}, response => {
         constants = response.constants
         settingsElements.loading("Loading settings...")

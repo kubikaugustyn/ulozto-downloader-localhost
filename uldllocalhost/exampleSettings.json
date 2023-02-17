@@ -4,8 +4,8 @@
   ],
   "main": {
     "parts": 20,
-    "output": "./",
-    "temp": "./",
+    "output": "C:\\temp\\Ulozto\\out",
+    "temp": "C:\\temp\\Ulozto\\tmp",
     "overwrite": false
   },
   "log": {

@@ -18,7 +18,13 @@
         <div id="loadingMessage">Loading...</div>
     </div>
 </div>
-<form id="settingsForm">
+<h2>Nastavení</h2>
+<form class="foldable folded" id="settingsForm">
+    <div class="foldButton">
+        <h3 class="folded">Méně</h3>
+        <h3 class="unfolded">Více</h3>
+    </div>
+    <p>Pozor: V průběhu stahování není možné nastavení měnit</p>
     <fieldset id="urls">
         <legend>Zadejte jednu nebo více URL videa</legend>
         <button id="urlAdd">+</button>
@@ -35,18 +41,28 @@
     </fieldset>
     <fieldset id="log">
         <legend>Nastavení Logu</legend>
-        <label>Části: <input type="checkbox" id="partsProgress" title="Zobrazit postup částí když jsou stahovány"></label><br>
+        <label>Části: <input type="checkbox" id="partsProgress"
+                             title="Zobrazit postup částí když jsou stahovány"></label><br>
         <label>Log soubor: <input type="text" placeholder="Log soubor" id="logFile"
-                              title="Výstupní log soubor, do kterého se uloží log"></label>
+                                  title="Výstupní log soubor, do kterého se uloží log"></label>
     </fieldset>
     <fieldset id="captcha">
         <legend>Nastavení Captchy</legend>
-        <label>Automatická Captcha: <input type="checkbox" id="autoCaptcha" title="Jestli je povolena automatická Captcha"></label><br>
+        <label>Automatická Captcha: <input type="checkbox" id="autoCaptcha"
+                                           title="Jestli je povolena automatická Captcha"></label><br>
         <label>Manuální Captcha: <input type="checkbox" id="manualCaptcha" title="Jestli je povolena manuální Captcha"></label><br>
-        <label>Časový limit připojení: <input type="number" min="1" placeholder="Časový limit připojení" id="connTimeout"
-                              title="Časový limit připojení pro TOR v sekundách"> sekund</label>
+        <label>Časový limit připojení: <input type="number" min="1" placeholder="Časový limit připojení"
+                                              id="connTimeout"
+                                              title="Časový limit připojení pro TOR v sekundách"> sekund</label>
     </fieldset>
     <input type="submit" value="Uložit">
 </form>
+<h2>Stahování</h2>
+<div>
+    <button id="downloadStart">Spustit</button>
+    <button id="downloadStop">Zastavit</button>
+    <br>
+    <div id="logging"></div>
+</div>
 </body>
 </html>
