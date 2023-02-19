@@ -23,6 +23,7 @@ new Array(document.querySelector(".foldButton")).forEach(button => {
 
 const ge = (id) => document.getElementById(id)
 let settings = undefined
+let writtenData = ""
 let downloadState = undefined
 let constants = {}
 const getConst = (text) => {
@@ -138,6 +139,12 @@ const onMessage = (fromUser, text) => {
 const onFrontendMessage = (message) => {
     console.log("Frontend message:", message)
     if (message.type === "print") settingsElements.logging.innerHTML += message.print + "<br>"
+    else if (message.type === "write") writtenData += message.write
+    else if (message.type === "flush") {
+        settingsElements.logging.innerHTML += writtenData + "<br>"
+        writtenData = ""
+    }
+    window.scrollTo(0, document.body.getBoundingClientRect().height)
 }
 
 const downloadChange = data => {
