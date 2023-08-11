@@ -2,6 +2,7 @@
 __author__ = "kubik.augustyn@post.cz"
 
 from uldlib.frontend import *
+
 from .Server import *
 
 
@@ -16,6 +17,8 @@ class WebFrontend(Frontend):
     last_captcha_log: Tuple[str, LogLevel]
     last_captcha_stats: Dict[str, int]
 
+    prompts: Dict[str, str | None]
+
     serverConnection: ServerConnection
 
     def __init__(self, serverConnection, show_parts: bool = False, logfile: str = ""):
@@ -26,6 +29,7 @@ class WebFrontend(Frontend):
         self.last_captcha_log = ("", LogLevel.INFO)
         self.last_captcha_stats = None
         self.show_parts = show_parts
+        self.prompts = {}
         if logfile:
             self.logfile = open(logfile, 'a')
 
@@ -76,9 +80,34 @@ class WebFrontend(Frontend):
     def captcha_stats(self, stats: Dict[str, int]):
         self.last_captcha_stats = stats
 
+    def promptCaptcha(self, imageB64: str, stop_event: threading.Event = None) -> str:
+        id = uuid.uuid4().hex
+        self.prompts[id] = None
+        self.serverConnection.onFrontendMessage({
+            'type': "prompt",
+            'id': id,
+            'promptCaptcha': imageB64
+        })
+        while self.prompts[id] is None:
+            # Wait for response from the user
+            if stop_event and stop_event.is_set():
+                break
+        return self.prompts[id].strip()
+
     def prompt(self, msg: str, level: LogLevel = LogLevel.INFO) -> str:
-        print(utils.color(msg, level), end="")
-        return input().strip()
+        # print(utils.color(msg, level))
+        id = uuid.uuid4().hex
+        self.prompts[id] = None
+        self.serverConnection.onFrontendMessage({
+            'type': "prompt",
+            'id': id,
+            'prompt': msg,
+            'level': level.name
+        })
+        while self.prompts[id] is None:
+            pass  # Wait for response from the user
+        # print("Answer:", self.prompts[id])
+        return self.prompts[id].strip()
 
     @staticmethod
     def _stat_fmt(stats: Dict[str, int]):

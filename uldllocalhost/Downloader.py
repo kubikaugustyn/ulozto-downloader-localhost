@@ -11,6 +11,7 @@ from uldlib import utils
 from uldlib.torrunner import TorRunner
 from uldlib.utils import LogLevel
 from uldllocalhost.Settings import Settings
+from uldllocalhost.WebCaptcha import ManualWebInput
 from uldllocalhost.WebFrontend import WebFrontend
 
 
@@ -34,10 +35,11 @@ class Downloader:
         self.__state = DownloaderState.RUNNING
         # TODOne: implemented other frontend ;-)
         frontend = WebFrontend(self.serverConnection, show_parts=args.parts_progress, logfile=args.log)
+        self.serverConnection.webFrontend = frontend
 
         tfull_available = importlib.util.find_spec('tensorflow') and importlib.util.find_spec('tensorflow.lite')
         tflite_available = importlib.util.find_spec('tflite_runtime')
-        tkinter_available = importlib.util.find_spec('tkinter')
+        #tkinter_available = importlib.util.find_spec('tkinter')
 
         # Autodetection
         if not args.auto_captcha and not args.manual_captcha:
@@ -47,8 +49,9 @@ class Downloader:
             elif tflite_available:
                 frontend.main_log("[Autodetect] tflite_runtime available, using --auto-captcha")
                 args.auto_captcha = True
-            elif tkinter_available:
-                frontend.main_log("[Autodetect] tkinter available, using --manual-captcha")
+            elif True:#tkinter_available:
+                # frontend.main_log("[Autodetect] tkinter available, using --manual-captcha")
+                frontend.main_log("[Autodetect] Web frontend available, using --manual-captcha")
                 args.manual_captcha = True
             else:
                 frontend.main_log(
@@ -66,11 +69,12 @@ class Downloader:
             model_path = path.join(__path__[0], const.MODEL_FILENAME)
             solver = captcha.AutoReadCaptcha(model_path, const.MODEL_DOWNLOAD_URL, frontend)
         elif args.manual_captcha:
-            if not tkinter_available:
-                frontend.main_log('ERROR: --manual-captcha used but tkinter not available', level=LogLevel.ERROR)
-                sys.exit(1)
+            # if not tkinter_available:
+            #     frontend.main_log('ERROR: --manual-captcha used but tkinter not available', level=LogLevel.ERROR)
+            #     sys.exit(1)
 
-            solver = captcha.ManualInput(frontend)
+            # solver = captcha.ManualInput(frontend)
+            solver = ManualWebInput(frontend)
         else:
             solver = captcha.Dummy(frontend)
 

@@ -55,6 +55,8 @@ const settingsElements = new class {
         this.manualCaptcha = ge("manualCaptcha")
         this.connTimeout = ge("connTimeout")
 
+        this.captchaContainer = ge("captchaContainer")
+
         this.downloadStart = ge("downloadStart")
         this.downloadStop = ge("downloadStop")
         this.logging = ge("logging")
@@ -117,6 +119,7 @@ api.onopen = () => {
 }
 
 let messageHandlers = new Map()
+let captchas = new Map()
 const generateId = () => Math.random().toString(36).slice(2)
 const sendMessage = (value, onload) => {
     if (!value) return
@@ -135,14 +138,91 @@ const onMessage = (fromUser, text) => {
     // messages.appendChild(p)
     console.log(prefix, text)
 }
+const addCaptcha = (id, imageB64) => {
+    window.scrollTo(0, 0)
+    const div = document.createElement("div")
+    div.innerHTML = `<img src="data:image/png;base64,${imageB64}" alt="Captcha prompt"><br>`
+    var input = document.createElement("input")
+    input.placeholder = "Kód z obrázku"
+    input.type = "text"
+    div.appendChild(input)
+    input.select()
+    var button = document.createElement("button")
+    button.innerHTML = "OK"
+    button.addEventListener("click", submitCaptchaFactory(id))
+    div.appendChild(button)
+    console.log("CAPTCHA PROMPT")
+    div.dataset.id = id
+    captchas.set(id, div)
+    settingsElements.captchaContainer.appendChild(div)
+}
+const submitCaptchaFactory = id => {
+    return () => {
+        var div = captchas.get(id)
+        var input = div.getElementsByTagName("input")[0]
+        if (!input || !input.value) return
+        captchas.delete(id)
+        settingsElements.captchaContainer.removeChild(div)
+        sendMessage({"type": "promptResponse", "promptResponse": input.value, "id": id})
+    }
+}
+
+const colorText = text => {
+    var colored = ""
+    var coloredSpan
+    var i = 0
+    while (i < text.length) {
+        var char = text.charAt(i)
+        if (char === "\x1B") {
+            if (coloredSpan) {
+                coloredSpan.innerHTML = coloredSpan.innerText
+                colored += coloredSpan.outerHTML
+            }
+            i += 2 // \x1B[
+            var background = text.charAt(i).toUpperCase()
+            i++
+            var foreground
+            if ("0123456789ABCDEF".includes(text.charAt(i))) {
+                foreground = text.charAt(i).toUpperCase()
+                i++
+            } else if (text.charAt(i) !== "m") i -= 2
+            coloredSpan = document.createElement("span")
+            coloredSpan.dataset.background = background
+            coloredSpan.dataset.foreground = foreground
+            coloredSpan.classList.add("color")
+        } else {
+            if (coloredSpan) coloredSpan.innerText += char
+            else colored += char
+        }
+        i++
+    }
+    if (coloredSpan) {
+        coloredSpan.innerHTML = coloredSpan.innerText
+        colored += coloredSpan.outerHTML
+    }
+    return colored
+}
 
 const onFrontendMessage = (message) => {
     console.log("Frontend message:", message)
-    if (message.type === "print") settingsElements.logging.innerHTML += message.print + "<br>"
-    else if (message.type === "write") writtenData += message.write
-    else if (message.type === "flush") {
-        settingsElements.logging.innerHTML += writtenData + "<br>"
+    if (message.type === "print") settingsElements.logging.innerHTML += colorText(message.print) + "<br>"
+    else if (message.type === "write") {
+        if (message.write.endsWith("\r")) {
+            message.write = message.write.slice(0, message.write.length - 2)
+            writtenData += message.write
+            onFrontendMessage({type: "flush"})
+        } else writtenData += message.write
+    } else if (message.type === "flush") {
+        settingsElements.logging.innerHTML += colorText(writtenData) + "<br>"
         writtenData = ""
+    } else if (message.type === "prompt") {
+        if (message.prompt) {
+            // Normal prompt
+            sendMessage({"type": "promptResponse", "promptResponse": prompt(message.prompt), "id": message.id})
+        } else {
+            // Captcha prompt
+            addCaptcha(message.id, message.promptCaptcha)
+        }
     }
     window.scrollTo(0, document.body.getBoundingClientRect().height)
 }
@@ -178,6 +258,8 @@ const downloadStateChange = data => {
             console.log("Not implemented state:", downloadState)
             break
     }
+    // Reset captchaContainer
+    if (downloadState !== "running") settingsElements.captchaContainer.innerHTML = ""
 }
 const onDownloadStop = () => {
     console.log("Download stopped!")

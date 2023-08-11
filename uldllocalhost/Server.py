@@ -15,6 +15,7 @@ from Downloader import *
 from typing import List
 
 
+
 class WebSocketFrame:
     def __init__(self, fin=False, rsv=0, opcode=0, hasMask=False, maskingKey=bytes([]), payloadData=bytes([])):
         self.fin = fin
@@ -82,6 +83,7 @@ class ServerConnection:
         self.addr = addr
         self.id = id
         self.server = server
+        self.webFrontend: WebFrontend | None = None
 
         self.__apiHandler = False
         self.__alive = True
@@ -192,6 +194,9 @@ class ServerConnection:
                                 self.__downloader.exitHandler()
                         else:
                             print("Undefined payload JSON:", payload)
+                    elif payload['type'] == "promptResponse":
+                        if self.webFrontend and self.webFrontend.prompts.get(payload['id'], 666) != 666:
+                            self.webFrontend.prompts[payload['id']] = payload['promptResponse']
                     else:
                         print("Undefined payload JSON:", payload)
                 except KeyError:

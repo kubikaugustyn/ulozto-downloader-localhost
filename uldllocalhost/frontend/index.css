@@ -1,3 +1,145 @@
+/*https://www.computerhope.com/color.htm*/
+.color[data-background="0"] {
+    /*background-color: black;*/
+    background-color: white;
+}
+
+.color[data-background="1"] {
+    background-color: blue;
+}
+
+.color[data-background="2"] {
+    background-color: green;
+}
+
+.color[data-background="3"] {
+    background-color: aqua;
+}
+
+.color[data-background="4"] {
+    background-color: red;
+}
+
+.color[data-background="5"] {
+    background-color: purple;
+}
+
+.color[data-background="6"] {
+    background-color: yellow;
+}
+
+.color[data-background="7"] {
+    /*background-color: white;*/
+    background-color: black;
+}
+
+.color[data-background="8"] {
+    background-color: gray;
+}
+
+.color[data-background="9"] {
+    background-color: lightblue;
+}
+
+.color[data-background="A"] {
+    background-color: lightgreen;
+}
+
+.color[data-background="B"] {
+    /*Light aqua*/
+    background-color: lightskyblue;
+}
+
+.color[data-background="C"] {
+    /*Light red*/
+    background-color: lightcoral;
+}
+
+.color[data-background="D"] {
+    /*Light purple*/
+    background-color: mediumpurple;
+}
+
+.color[data-background="E"] {
+    background-color: lightyellow;
+}
+
+.color[data-background="F"] {
+    /*Bright white*/
+    background-color: whitesmoke;
+}
+
+.color[data-foreground="0"] {
+    /*color: black;*/
+    color: white;
+}
+
+.color[data-foreground="1"] {
+    color: blue;
+}
+
+.color[data-foreground="2"] {
+    color: green;
+}
+
+.color[data-foreground="3"] {
+    color: aqua;
+}
+
+.color[data-foreground="4"] {
+    color: red;
+}
+
+.color[data-foreground="5"] {
+    color: purple;
+}
+
+.color[data-foreground="6"] {
+    color: yellow;
+}
+
+.color[data-foreground="7"] {
+    /*color: white;*/
+    color: black;
+}
+
+.color[data-foreground="8"] {
+    color: gray;
+}
+
+.color[data-foreground="9"] {
+    color: lightblue;
+}
+
+.color[data-foreground="A"] {
+    color: lightgreen;
+}
+
+.color[data-foreground="B"] {
+    /*Light aqua*/
+    color: lightskyblue;
+}
+
+.color[data-foreground="C"] {
+    /*Light red*/
+    color: lightcoral;
+}
+
+.color[data-foreground="D"] {
+    /*Light purple*/
+    color: mediumpurple;
+}
+
+.color[data-foreground="E"] {
+    color: lightyellow;
+}
+
+.color[data-foreground="F"] {
+    /*Bright white*/
+    color: whitesmoke;
+}
+
+
 * {
     margin: 0;
 }
