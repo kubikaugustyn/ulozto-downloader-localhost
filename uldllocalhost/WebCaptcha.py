@@ -6,10 +6,8 @@ import threading
 
 import requests
 from uldlib.captcha import CaptchaSolver
-from PIL import Image
-from io import BytesIO
 
-from uldllocalhost.WebFrontend import WebFrontend
+from uldllocalhost import WebFrontend
 
 
 class ManualWebInput(CaptchaSolver):

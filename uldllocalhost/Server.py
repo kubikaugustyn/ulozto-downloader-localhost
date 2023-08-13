@@ -8,12 +8,15 @@ import hashlib
 import socket
 import uuid
 from threading import Thread
-from HTTPRequest import *
-from HTTPResponse import *
-from Settings import *
-from Downloader import *
 from typing import List
 
+from uldlib.torrunner import TOR_CONFIG
+from uldllocalhost import Settings, WebFrontend, HTTPRequest, HTTPResponse, Downloader
+
+# Delete the log from torrunner, since it's not needed I think
+# And it also does bad stuff in this library folder
+if TOR_CONFIG.get('Log', 666) != 666:
+    del TOR_CONFIG['Log']
 
 
 class WebSocketFrame:
@@ -78,12 +81,14 @@ class WebSocketFrame:
 
 
 class ServerConnection:
-    def __init__(self, conn: socket.socket, addr: str, id: uuid.UUID, server):
+    def __init__(self, conn: socket.socket, addr: str, id: uuid.UUID, server, captures=False, debug_print=False):
         self.conn = conn
         self.addr = addr
         self.id = id
         self.server = server
         self.webFrontend: WebFrontend | None = None
+        self.captures = captures
+        self.debug_print = debug_print
 
         self.__apiHandler = False
         self.__alive = True
@@ -97,6 +102,10 @@ class ServerConnection:
 
         self.__responseThread.start()
 
+    def print(self, *args, sep=' ', end='\n', file=None):
+        if self.debug_print:
+            print(*args, sep=sep, end=end, file=file)
+
     # byte & numb is 1
     # 0110 & 100 is 1
     # 0110 & 1000 is 0
@@ -106,7 +115,7 @@ class ServerConnection:
 
     @staticmethod
     def __serveFile(fileName: str):
-        # print(f"Serving file: {fileName}")
+        # self.print(f"Serving file: {fileName}")
         response = HTTPResponse()
         response.setStatusCode(200).setReasonPhrase("OK")
         with open(fileName, "rb+") as f:
@@ -118,23 +127,50 @@ class ServerConnection:
         self.__addWebSocketRequest([webSocket])
 
     @staticmethod
-    def __readSettings():
-        raw = json.load(open("settings.json", "r+"))
+    def __readSettings() -> Settings:
+        raw: dict = json.load(open("settings.json", "r+"))
         settings = Settings()
-        settings.urls = raw['urls']
-        settings.parts = raw['main']['parts']
-        settings.output = raw['main']['output']
-        settings.temp = raw['main']['temp']
-        settings.yes = raw['main']['overwrite']
-        settings.parts_progress = raw['log']['partsProgress']
-        settings.log = raw['log']['log']
-        settings.auto_captcha = raw['captcha']['autoCaptcha']
-        settings.manual_captcha = raw['captcha']['manualCaptcha']
-        settings.conn_timeout = raw['captcha']['connTimeout']
+
+        settings.urls = raw.get("urls", [])
+
+        main = raw.get("main", {})
+        settings.parts = main.get('parts', 20)
+        settings.password = main.get("password", "")
+        settings.output = main.get('output', "./")
+        settings.temp = main.get('temp', "./")
+        settings.yes = main.get('overwrite', False)
+
+        log = raw.get("log", {})
+        settings.parts_progress = log.get('partsProgress', False)
+        settings.log = log.get("log", "")
+        # Nope, you can't select frontend - BECAUSE THIS IMPLEMENTS THE WEB FRONTEND
+
+        captcha = raw.get("captcha", {})
+        settings.auto_captcha = captcha.get('autoCaptcha', False)
+        settings.manual_captcha = captcha.get('manualCaptcha', False)
+
+        tor = raw.get("tor", {})
+        settings.enforce_tor = tor.get('enforceTor', False)
+        settings.conn_timeout = tor.get('connTimeout', constants.DEFAULT_CONN_TIMEOUT)
+
+        # Ensure the defaults are written
+        ServerConnection.__writeSettings(settings)
         return settings
 
+    @staticmethod
+    def __writeSettings(settings: Settings):
+        raw = {
+            'urls': settings.urls,
+            'main': {'parts': settings.parts, 'password': settings.password, 'output': settings.output,
+                     'temp': settings.temp, 'overwrite': settings.yes},
+            'log': {'partsProgress': settings.parts_progress, 'log': settings.log},
+            'captcha': {'autoCaptcha': settings.auto_captcha, 'manualCaptcha': settings.manual_captcha},
+            'tor': {'enforceTor': settings.enforce_tor, 'connTimeout': settings.conn_timeout}
+        }
+        json.dump(raw, open("settings.json", "w+"))
+
     def __handleAPIMessage(self, id: uuid.UUID, messageFrames: List[WebSocketFrame], connection: socket.socket):
-        # print(f"({id}) Received message: {list(map(lambda frame: str(frame), messageFrames))}")
+        # self.print(f"({id}) Received message: {list(map(lambda frame: str(frame), messageFrames))}")
         opcode = None
         payloads = []
         for frame in messageFrames:
@@ -151,12 +187,12 @@ class ServerConnection:
             payload = payload.decode('utf-8')
             if payload.startswith("json"):
                 payload = json.loads(payload[4:])
-            print(f"We received message: {payload}")
+            self.print(f"We received message: {payload}")
             if isinstance(payload, str):
                 if payload == "Hello":
                     self.__sendWebSocketJSON({'type': "Hi"})
             else:
-                print("Received json!")
+                self.print("Received json!")
                 try:
                     if payload['type'] == "request":
                         if payload['request'] == "settings":
@@ -193,22 +229,22 @@ class ServerConnection:
                             if self.__downloader.exitHandler:
                                 self.__downloader.exitHandler()
                         else:
-                            print("Undefined payload JSON:", payload)
+                            self.print("Undefined payload JSON:", payload)
                     elif payload['type'] == "promptResponse":
                         if self.webFrontend and self.webFrontend.prompts.get(payload['id'], 666) != 666:
                             self.webFrontend.prompts[payload['id']] = payload['promptResponse']
                     else:
-                        print("Undefined payload JSON:", payload)
+                        self.print("Undefined payload JSON:", payload)
                 except KeyError:
-                    print("KeyError")
+                    self.print("KeyError")
         elif opcode == 0x2:  # Denotes a binary frame
-            print(f"We received binary: {payload}")
+            self.print(f"We received binary: {payload}")
         elif opcode == 0x8:  # Denotes a connection close
             connection.close()
         elif opcode == 0x9:  # Denotes a ping
-            print("We were pinged!")
+            self.print("We were pinged!")
         elif opcode == 0xA:  # Denotes a pong
-            print("We received pong!")
+            self.print("We received pong!")
         else:
             raise RuntimeError("Wtf?!")
 
@@ -240,7 +276,7 @@ class ServerConnection:
                 if not data:
                     break
                 allData += data
-                # print(data)
+                # self.print(data)
                 if i == 0:  # Don't exit on second request
                     request = HTTPRequest(data)
                     requestURI = request.requestURI.decode('ascii')
@@ -260,7 +296,7 @@ class ServerConnection:
                         hashedText = request.getHeader(bytes("Sec-WebSocket-Key", 'ascii')).decode(
                             'ascii') + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
                         sha1.update(bytes(hashedText, 'ascii'))
-                        # print("Hashed:", sha1.digest(), f"===> {base64.b64encode(sha1.digest()).decode('ascii')}")
+                        # self.print("Hashed:", sha1.digest(), f"===> {base64.b64encode(sha1.digest()).decode('ascii')}")
                         # f"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: {base64.b64encode(sha1.digest()).decode('ascii')}\r\n\r\n",
                         response = HTTPResponse()
                         response.setStatusCode(101).setReasonPhrase("Switching Protocols")
@@ -269,9 +305,9 @@ class ServerConnection:
                                            "*")  # So you can use the API on your own localhost
                         response.addHeader("Sec-WebSocket-Accept", base64.b64encode(sha1.digest()).decode('ascii'))
                         response.create()
-                        # print(response.responseBytes)
+                        # self.print(response.responseBytes)
                         conn.send(response.responseBytes)
-                        # print("Sent response!")
+                        # self.print("Sent response!")
                     elif path == "/":
                         response = self.__serveFile("frontend/index.html")
                         conn.send(response.create())
@@ -339,23 +375,24 @@ class ServerConnection:
                                 rawFrameDataInts.append(intData.pop(0) ^ maskingKey)
                             rawFrameData = bytes(rawFrameDataInts)
                             frames.append(WebSocketFrame(fin, rsv, opcode, payloadData=rawFrameData))
-                            # print(f"({id}) Got frame (mask: {maskingKeys}, len: {length}):", rawFrameData)
+                            # self.print(f"({id}) Got frame (mask: {maskingKeys}, len: {length}):", rawFrameData)
                             if fin:  # If final frame, handle message
                                 self.__handleAPIMessage(id, frames, conn)
                                 frames = []
                 i += 1
         except OSError:
             self.exit()
-        print(f"({id}) Connection closed. Received:", allData)
-        with open(f"captures/{id}.bin", "wb+") as f:
-            f.write(allData)
-            f.close()
+        self.print(f"({id}) Connection closed. Received:", allData)
+        if self.captures:
+            with open(f"captures/{id}.bin", "wb+") as f:
+                f.write(allData)
+                f.close()
 
     def __requestProcessor(self):
         while self.__alive:
             for request in self.__requests:
                 if not request['closed']:
-                    print(request)
+                    self.print(request)
                     if request['type'] == "websocket":
                         message = bytes([]).join(list(map(lambda sock: sock.create(), request['webSockets'])))
                         try:
@@ -392,9 +429,11 @@ class ServerConnection:
 
 
 class Server:
-    def __init__(self, host="127.0.0.1", port=80):
+    def __init__(self, host="127.0.0.1", port=80, captures=False, debug_print=False):
         self.host = host
         self.port = port
+        self.captures = captures
+        self.debug_print = debug_print
 
         self.__connections = []
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -407,16 +446,18 @@ class Server:
         while True:
             self.__connections = list(filter(lambda connection: connection.isAlive(), self.__connections))
             conn, addr = self.__socket.accept()
-            # print(f"{addr[0]}:{addr[1]} has connected.")
+            # if self.debug_print:
+            #     print(f"{addr[0]}:{addr[1]} has connected.")
             t = Thread(target=self.__handleConnection, args=(conn, addr))
             t.start()
 
     def __handleConnection(self, conn, addr):
-        # print(conn, addr)
+        # if self.debug_print:
+        #     print(conn, addr)
         # https://en.wikipedia.org/wiki/WebSocket
         # https://www.rfc-editor.org/rfc/rfc6455
         id = uuid.uuid4()
-        connection = ServerConnection(conn, addr, id, self)
+        connection = ServerConnection(conn, addr, id, self, self.captures, self.debug_print)
         self.__connections.append(connection)
 
 

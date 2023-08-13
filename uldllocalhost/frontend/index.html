@@ -33,6 +33,8 @@
         <legend>Hlavní nastavení</legend>
         <label>Části: <input type="number" placeholder="Části" step="1" min="1" id="parts"
                              title="Kolik částí bude stahováno naráz"></label><br>
+        <label>Heslo: <input type="password" placeholder="Heslo" id="password"
+                             title="Volitelné heslo, pokud je soubor chráněn heslem"></label><br>
         <label>Výstup: <input type="text" placeholder="Výstupní složka" id="output"
                               title="Výstupní složka, do které se uloží stažené soubory"></label><br>
         <label>Dočasný výstup: <input type="text" placeholder="Dočasný výstup" id="temp"
@@ -49,8 +51,14 @@
     <fieldset id="captcha">
         <legend>Nastavení Captchy</legend>
         <label>Automatická Captcha: <input type="checkbox" id="autoCaptcha"
-                                           title="Jestli je povolena automatická Captcha"></label><br>
-        <label>Manuální Captcha: <input type="checkbox" id="manualCaptcha" title="Jestli je povolena manuální Captcha"></label><br>
+                                           title="Zkusit automaticky vyřešit CAPTCHy pomocí TensorFlow"></label><br>
+        <label>Manuální Captcha: <input type="checkbox" id="manualCaptcha"
+                                        title="Vyřešte CAPTCHy ručním zadáním"></label><br>
+    </fieldset>
+    <fieldset id="tor">
+        <legend>Nastavení TORu</legend>
+        <label>Vynutit TOR: <input type="checkbox" id="enforceTor"
+                                   title="Proveďte všechna připojení přes TOR. Pokud není nastaveno, počáteční připojení k Ulož.to se provede přímo před spuštěním TORu"></label><br>
         <label>Časový limit připojení: <input type="number" min="1" placeholder="Časový limit připojení"
                                               id="connTimeout"
                                               title="Časový limit připojení pro TOR v sekundách"> sekund</label>

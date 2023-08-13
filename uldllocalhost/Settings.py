@@ -7,6 +7,7 @@ from typing import List, Optional
 class Settings:
     urls: List[str]
     parts: int
+    password: str
     output: str
     temp: str
     yes: bool
@@ -15,3 +16,4 @@ class Settings:
     auto_captcha: bool
     manual_captcha: bool
     conn_timeout: int
+    enforce_tor: bool

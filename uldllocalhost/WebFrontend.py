@@ -2,8 +2,7 @@
 __author__ = "kubik.augustyn@post.cz"
 
 from uldlib.frontend import *
-
-from .Server import *
+import uuid
 
 
 # Custom frontend
@@ -19,7 +18,8 @@ class WebFrontend(Frontend):
 
     prompts: Dict[str, str | None]
 
-    serverConnection: ServerConnection
+    # serverConnection: ServerConnection - idk what to do, pls help
+    # import from partially initialised module errors :-/
 
     def __init__(self, serverConnection, show_parts: bool = False, logfile: str = ""):
         self.serverConnection = serverConnection

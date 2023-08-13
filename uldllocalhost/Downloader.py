@@ -10,8 +10,8 @@ from uldlib import downloader, captcha, __path__, const
 from uldlib import utils
 from uldlib.torrunner import TorRunner
 from uldlib.utils import LogLevel
-from uldllocalhost.Settings import Settings
-from uldllocalhost.WebCaptcha import ManualWebInput
+from uldllocalhost import Settings
+from uldllocalhost import ManualWebInput
 from uldllocalhost.WebFrontend import WebFrontend
 
 
@@ -39,7 +39,7 @@ class Downloader:
 
         tfull_available = importlib.util.find_spec('tensorflow') and importlib.util.find_spec('tensorflow.lite')
         tflite_available = importlib.util.find_spec('tflite_runtime')
-        #tkinter_available = importlib.util.find_spec('tkinter')
+        # tkinter_available = importlib.util.find_spec('tkinter')
 
         # Autodetection
         if not args.auto_captcha and not args.manual_captcha:
@@ -49,7 +49,7 @@ class Downloader:
             elif tflite_available:
                 frontend.main_log("[Autodetect] tflite_runtime available, using --auto-captcha")
                 args.auto_captcha = True
-            elif True:#tkinter_available:
+            elif True:  # tkinter_available:
                 # frontend.main_log("[Autodetect] tkinter available, using --manual-captcha")
                 frontend.main_log("[Autodetect] Web frontend available, using --manual-captcha")
                 args.manual_captcha = True
@@ -101,7 +101,8 @@ class Downloader:
 
         try:
             for url in args.urls:
-                d.download(url, args.parts, args.output, args.temp, args.yes, args.conn_timeout)
+                d.download(url, args.parts, args.password, args.output, args.temp, args.yes, args.conn_timeout,
+                           args.enforce_tor)
                 # do clean only on successful download (no exception)
                 d.clean()
         except utils.DownloaderStopped:

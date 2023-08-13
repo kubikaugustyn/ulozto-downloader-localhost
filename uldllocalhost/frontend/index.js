@@ -42,6 +42,7 @@ const settingsElements = new class {
         this.urlElemAdd = ge("urlAdd")
 
         this.parts = ge("parts")
+        this.password = ge("password")
         this.output = ge("output")
         this.temp = ge("temp")
         this.overwrite = ge("overwrite")
@@ -53,6 +54,9 @@ const settingsElements = new class {
         this.captcha = ge("captcha")
         this.autoCaptcha = ge("autoCaptcha")
         this.manualCaptcha = ge("manualCaptcha")
+
+        this.tor = ge("tor")
+        this.enforceTor = ge("enforceTor")
         this.connTimeout = ge("connTimeout")
 
         this.captchaContainer = ge("captchaContainer")
@@ -275,6 +279,7 @@ settingsElements.settingsForm.onsubmit = ev => {
     settings.urls = settingsElements.readUrls()
 
     settings.main.parts = parseInt(settingsElements.parts.value)
+    settings.main.password = settingsElements.password.value
     settings.main.output = settingsElements.output.value
     settings.main.temp = settingsElements.temp.value
     settings.main.overwrite = settingsElements.overwrite.checked
@@ -284,7 +289,9 @@ settingsElements.settingsForm.onsubmit = ev => {
 
     settings.captcha.autoCaptcha = settingsElements.autoCaptcha.checked
     settings.captcha.manualCaptcha = settingsElements.manualCaptcha.checked
-    settings.captcha.connTimeout = parseInt(settingsElements.connTimeout.value)
+
+    settings.tor.enforceTor = settingsElements.enforceTor.checked
+    settings.tor.connTimeout = parseInt(settingsElements.connTimeout.value)
 
     settingsElements.loading("Saving settings...")
     sendMessage({"type": "save", "save": "settings", "settings": settings}, response => {
@@ -320,6 +327,7 @@ const onInit = () => {
             settings.urls.forEach(settingsElements.addUrlElem)
 
             settingsElements.parts.value = getConst(settings.main.parts)
+            settingsElements.password.value = getConst(settings.main.password)
             settingsElements.output.value = getConst(settings.main.output)
             settingsElements.temp.value = getConst(settings.main.temp)
             settingsElements.overwrite.checked = getConst(settings.main.overwrite)
@@ -329,7 +337,9 @@ const onInit = () => {
 
             settingsElements.autoCaptcha.checked = getConst(settings.captcha.autoCaptcha)
             settingsElements.manualCaptcha.checked = getConst(settings.captcha.manualCaptcha)
-            settingsElements.connTimeout.value = getConst(settings.captcha.connTimeout)
+
+            settingsElements.enforceTor.checked = getConst(settings.tor.enforceTor)
+            settingsElements.connTimeout.value = getConst(settings.tor.connTimeout)
 
             settingsElements.stopLoading()
         })

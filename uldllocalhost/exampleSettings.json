@@ -4,9 +4,10 @@
   ],
   "main": {
     "parts": 20,
+    "password": "",
     "output": "C:\\temp\\Ulozto\\out",
     "temp": "C:\\temp\\Ulozto\\tmp",
-    "overwrite": false
+    "overwrite": true
   },
   "log": {
     "partsProgress": false,
@@ -14,7 +15,10 @@
   },
   "captcha": {
     "autoCaptcha": false,
-    "manualCaptcha": false,
+    "manualCaptcha": false
+  },
+  "tor": {
+    "enforceTor": false,
     "connTimeout": "const DEFAULT_CONN_TIMEOUT"
   }
 }
